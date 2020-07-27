@@ -1,7 +1,7 @@
 {
     "name": "Social Media PWA",
     "short_name": "Social Media",
-    "icon": [
+    "icons": [
         {
             "src": "/src/images/icons/app-icon-48x48.png",
             "type": "image/png",
