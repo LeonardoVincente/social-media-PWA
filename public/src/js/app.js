@@ -4,6 +4,9 @@ if ('serviceWorker' in navigator) {
         .register('/sw.js')
         .then(function(){
             console.log('Service worker registered!');
+        })
+        .catch(function(err){
+            console.log("Error in service worked")
         });
 }
 
@@ -13,3 +16,15 @@ window.addEventListener('beforeinstallpropmpt', function(){
     defferedPrompt = event;
     return false;
 });
+
+fetch('https://httpbin.org/ip')
+    .then(function(response){
+        console.log(response);
+        return response.json();
+    })
+    .then(function(data){
+        console.log(data);
+    })
+    .catch(err=>{
+        console.llg(err);
+    })
