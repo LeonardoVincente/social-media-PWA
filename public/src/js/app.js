@@ -1,6 +1,6 @@
 var defferedPrompt;
 
-if(!window.Promise){
+if (!window.Promise) {
     window.Promise = Promise;
 }
 
