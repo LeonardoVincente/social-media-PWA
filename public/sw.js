@@ -1,5 +1,5 @@
-const CACHE_STATIC_NAME = 'static-v3';
-const CACHE_DYNAMIC_NAME = 'dynamic';
+const CACHE_STATIC_NAME = 'static-v5';
+const CACHE_DYNAMIC_NAME = 'dynamic-v2';
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
@@ -52,6 +52,7 @@ self.addEventListener('fetch', function (event) {
               caches.open(CACHE_DYNAMIC_NAME)
                 .then(function (cache) {
                   cache.put(event.request.url, res.clone());
+                  console.log("Error error ", res)
                   return res;
                 })
             })
