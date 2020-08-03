@@ -41,29 +41,55 @@ self.addEventListener('activate', function (event) {
   return self.clients.claim();
 })
 
+//cache then network
+// self.addEventListener('fetch', function (event) {
+//   event.respondWith(
+//     caches.match(event.request)
+//       .then(function (response) {
+//         if (response) {
+//           return response;
+//         } else {
+//           return fetch(event.request)
+//             .then(function (res) {
+//               caches.open(CACHE_DYNAMIC_NAME)
+//                 .then(function (cache) {
+//                   cache.put(event.request.url, res.clone());
+//                   console.log("Error error ", res)
+//                   return res;
+//                 })
+//             })
+//             .catch(function (err) {
+//               console.log(err)
+//               return caches.open(CACHE_STATIC_NAME)
+//             }).then(function(cache){
+//               return cache.match('/offilne.html');
+//             })
+//         }
+//       })
+//   );
+// });
+
+//Cache only
+// self.addEventListener('fetch', function (event) {
+//   event.respondWith(
+//     caches.match(event.request)
+// )});    
+
+//Network only
+// self.addEventListener('fetch', function (event) {
+//   event.respondWith(
+//     fetch(event.request)
+// )});    
+
+
+//network then cache
 self.addEventListener('fetch', function (event) {
   event.respondWith(
-    caches.match(event.request)
-      .then(function (response) {
-        if (response) {
-          return response;
-        } else {
-          return fetch(event.request)
-            .then(function (res) {
-              caches.open(CACHE_DYNAMIC_NAME)
-                .then(function (cache) {
-                  cache.put(event.request.url, res.clone());
-                  console.log("Error error ", res)
-                  return res;
-                })
-            })
-            .catch(function (err) {
-              console.log(err)
-              return caches.open(CACHE_STATIC_NAME)
-            }).then(function(cache){
-              return cache.match('/offilne.html');
-            })
-        }
+    fetch(event.request)
+      .catch(err => {
+        return caches.match(event.request)
+
       })
+
   );
 });
