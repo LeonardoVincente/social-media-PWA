@@ -26,21 +26,27 @@ function closeCreatePostModal() {
   createPostArea.style.display = 'none';
 }
 
+function clearCards(){
+  while(sharedMomentsArea.hasChildNodes()){
+    sharedMomentsArea.removeChild(sharedMomentsArea.lastChild);
+  }
+}
+
 shareImageButton.addEventListener('click', openCreatePostModal);
 
 closeCreatePostModalButton.addEventListener('click', closeCreatePostModal);
 
-// function onSavedButtonClicked(event){
-//   console.log('click');
-//   if('caches' in window){
-//     caches.open('user-requested')
-//     .then(function(cache){
-//       cache.add('https://httpbin.org/get')
-//       cache.add('/src/images/sf-boat.jpg')
-//     })
-//   }
+function onSavedButtonClicked(event){
+  console.log('click');
+  if('caches' in window){
+    caches.open('user-requested')
+    .then(function(cache){
+      cache.add('https://httpbin.org/get')
+      cache.add('/src/images/sf-boat.jpg')
+    })
+  }
 
-// }
+}
 
 function createCard() {
   var cardWrapper = document.createElement('div');
@@ -69,13 +75,36 @@ function createCard() {
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
+var url = 'https://httpbin.org/get';
+var networkDataReceived = false;
+
 fetch('https://httpbin.org/get')
   .then(function (res) {
+    console.log("Calling fetch")
     return res.json();
   })
   .then(function (data) {
+    console.log("From web 2")
+    networkDataReceived = true;
+    clearCards()
     createCard();
   })
-  .catch(error=>{
+  .catch(error => {
     console.log('[Fedd JS] feeching failed ', error);
   });
+
+
+if ('caches' in window) {
+  caches.match(url)
+    .then(function (response) {
+      if (response) {
+        return response.json();
+      }
+    }).then(function (data) {
+      console.log('From cache ', data);
+      if (!networkDataReceived) {
+        clearCards();
+        createCard();
+      }
+    })
+}

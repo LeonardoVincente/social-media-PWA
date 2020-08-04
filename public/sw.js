@@ -1,4 +1,4 @@
-const CACHE_STATIC_NAME = 'static-v10';
+const CACHE_STATIC_NAME = 'static-v16';
 const CACHE_DYNAMIC_NAME = 'dynamic-v2';
 
 self.addEventListener('install', function (event) {
@@ -28,11 +28,12 @@ self.addEventListener('install', function (event) {
 });
 
 self.addEventListener('activate', function (event) {
+  console.log("Activate called");
   event.waitUntil(caches.keys()
     .then(function (keyList) {
       return Promise.all(keyList.map(function (key) {
         if (key != CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
-          console.log('[Service Worker removing caches');
+          console.log('[Service Worker] removing caches');
           return caches.delete(key);
         }
       }));
@@ -83,13 +84,59 @@ self.addEventListener('activate', function (event) {
 
 
 //network then cache
+// self.addEventListener('fetch', function (event) {
+//   event.respondWith(
+//     fetch(event.request)
+//       .catch(err => {
+//         return caches.match(event.request)
+
+//       })
+//   );
+// });
+
+
+
+//cache then network
+
 self.addEventListener('fetch', function (event) {
-  event.respondWith(
-    fetch(event.request)
-      .catch(err => {
-        return caches.match(event.request)
-
-      })
-
-  );
+  var url = 'https://httpbin.org/get';
+  if (event.request.url.indexOf(url) > -1) {
+    event.respondWith(
+      caches.open(CACHE_DYNAMIC_NAME)
+        .then(function (cache) {
+          return fetch(event.request)
+            .then(function (res) {
+              cache.put(event.request, res.clone());
+              return res;
+            })
+        })
+    )
+  } else { // cache with network fallback
+    event.respondWith(
+      caches.match(event.request)
+        .then(function (response) {
+          if (response) {
+            return response;
+          } else {
+            return fetch(event.request)
+              .then(function (res) {
+                caches.open(CACHE_DYNAMIC_NAME)
+                  .then(function (cache) {
+                    cache.put(event.request.url, res.clone());
+                    console.log("Error error ", res)
+                    return res;
+                  })
+              })
+              .catch(function (err) {
+                console.log(err)
+                return caches.open(CACHE_STATIC_NAME)
+              }).then(function (cache) {
+                if(event.request.url.indexOf('/help') > -1){
+                  return cache.match('/offilne.html');
+                }
+              })
+          }
+        })
+    );
+  }
 });
