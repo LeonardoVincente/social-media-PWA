@@ -1,5 +1,5 @@
-const CACHE_STATIC_NAME = 'static-v17';
-const CACHE_DYNAMIC_NAME = 'dynamic-v2';
+const CACHE_STATIC_NAME = 'static-21';
+const CACHE_DYNAMIC_NAME = 'dynamic-v7';
 const STATIC_FILES = [
   '/',
   '/index.html',
@@ -99,7 +99,17 @@ self.addEventListener('activate', function (event) {
 
 //cache then network
 
+function isInArray(string, array) {
+  for (var i = 0; i < array.length; i++) {
+    if (array[i] == string) {
+      return true;
+    }
+  }
+  return false;
+}
+
 self.addEventListener('fetch', function (event) {
+  console.log('Fetched called '+ event.request.url);
   var url = 'https://httpbin.org/get';
   if (event.request.url.indexOf(url) > -1) {
     event.respondWith(
@@ -112,7 +122,7 @@ self.addEventListener('fetch', function (event) {
             })
         })
     )
-  } else if (new RegExp('\\b' + STATIC_FILES.join('\\b|\\b') + '\\b').test(event.request.url)) {
+  } else if (isInArray(event.request.url, STATIC_FILES)) {
     event.respondWith(
       caches.match(event.request)
     )
@@ -125,7 +135,7 @@ self.addEventListener('fetch', function (event) {
           } else {
             return fetch(event.request)
               .then(function (res) {
-                caches.open(CACHE_DYNAMIC_NAME)
+                return caches.open(CACHE_DYNAMIC_NAME)
                   .then(function (cache) {
                     cache.put(event.request.url, res.clone());
                     console.log("Error error ", res)
@@ -133,15 +143,18 @@ self.addEventListener('fetch', function (event) {
                   })
               })
               .catch(function (err) {
-                console.log(err)
+                console.log("eRROR IN CATCH BLOCK ", err)
                 return caches.open(CACHE_STATIC_NAME)
-              }).then(function (cache) {
-                if (event.request.url.indexOf('/help') > -1) {
-                  return cache.match('/offilne.html');
-                }
+                  .then(function (cache) {
+                    if (event.request.headers.get('accept').includes('text/html')) {
+                      return cache.match('/offilne.html');
+                    }
+                  })
               })
           }
         })
     );
   }
+
 });
+
