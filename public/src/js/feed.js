@@ -5,6 +5,7 @@ var sharedMomentsArea = document.querySelector('#shared-moments');
 
 function openCreatePostModal() {
   createPostArea.style.display = 'block';
+  let deferredPrompt;
   if (deferredPrompt) {
     deferredPrompt.prompt();
 
@@ -19,6 +20,15 @@ function openCreatePostModal() {
     });
 
     deferredPrompt = null;
+  }
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations()
+      .then(function(registrations){
+        for(var i = 0; i < registrations.length; i++){
+          registrations[i].unregister();
+        }
+      })
   }
 }
 
@@ -78,7 +88,16 @@ function createCard() {
 var url = 'https://httpbin.org/get';
 var networkDataReceived = false;
 
-fetch('https://httpbin.org/get')
+fetch('https://httpbin.org/get', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify({
+    message: 'som message'
+  })
+})
   .then(function (res) {
     console.log("Calling fetch")
     return res.json();

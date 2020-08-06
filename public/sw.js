@@ -1,5 +1,5 @@
-const CACHE_STATIC_NAME = 'static-21';
-const CACHE_DYNAMIC_NAME = 'dynamic-v7';
+const CACHE_STATIC_NAME = 'static-24';
+const CACHE_DYNAMIC_NAME = 'dynamic-v8';
 const STATIC_FILES = [
   '/',
   '/index.html',
@@ -16,6 +16,19 @@ const STATIC_FILES = [
   'https://fonts.googleapis.com/icon?family=Material+Icons',
   'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css'
 ];
+
+function trimCache(cacheName, maxItems) {
+  caches.open(cacheName)
+    .then(function (cache) {
+      return cache.keys()
+        .then(function (keys) {
+          if (keys.length > maxItems) {
+            cache.delete(keys[0])
+              .then(trimCache(cacheName, maxItems));
+          }
+        });
+    })
+}
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
@@ -109,7 +122,7 @@ function isInArray(string, array) {
 }
 
 self.addEventListener('fetch', function (event) {
-  console.log('Fetched called '+ event.request.url);
+  console.log('Fetched called ' + event.request.url);
   var url = 'https://httpbin.org/get';
   if (event.request.url.indexOf(url) > -1) {
     event.respondWith(
@@ -117,6 +130,7 @@ self.addEventListener('fetch', function (event) {
         .then(function (cache) {
           return fetch(event.request)
             .then(function (res) {
+              trimCache(CACHE_DYNAMIC_NAME, 3);
               cache.put(event.request, res.clone());
               return res;
             })
@@ -135,6 +149,7 @@ self.addEventListener('fetch', function (event) {
           } else {
             return fetch(event.request)
               .then(function (res) {
+                trimCache(CACHE_DYNAMIC_NAME, 3);
                 return caches.open(CACHE_DYNAMIC_NAME)
                   .then(function (cache) {
                     cache.put(event.request.url, res.clone());
