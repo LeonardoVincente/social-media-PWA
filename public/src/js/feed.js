@@ -22,10 +22,10 @@ function openCreatePostModal() {
     deferredPrompt = null;
   }
 
-  if('serviceWorker' in navigator){
+  if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations()
-      .then(function(registrations){
-        for(var i = 0; i < registrations.length; i++){
+      .then(function (registrations) {
+        for (var i = 0; i < registrations.length; i++) {
           registrations[i].unregister();
         }
       })
@@ -36,8 +36,8 @@ function closeCreatePostModal() {
   createPostArea.style.display = 'none';
 }
 
-function clearCards(){
-  while(sharedMomentsArea.hasChildNodes()){
+function clearCards() {
+  while (sharedMomentsArea.hasChildNodes()) {
     sharedMomentsArea.removeChild(sharedMomentsArea.lastChild);
   }
 }
@@ -46,35 +46,35 @@ shareImageButton.addEventListener('click', openCreatePostModal);
 
 closeCreatePostModalButton.addEventListener('click', closeCreatePostModal);
 
-function onSavedButtonClicked(event){
+function onSavedButtonClicked(event) {
   console.log('click');
-  if('caches' in window){
+  if ('caches' in window) {
     caches.open('user-requested')
-    .then(function(cache){
-      cache.add('https://httpbin.org/get')
-      cache.add('/src/images/sf-boat.jpg')
-    })
+      .then(function (cache) {
+        cache.add('https://httpbin.org/get')
+        cache.add('/src/images/sf-boat.jpg')
+      })
   }
 
 }
 
-function createCard() {
+function createCard(data) {
   var cardWrapper = document.createElement('div');
   cardWrapper.className = 'shared-moment-card mdl-card mdl-shadow--2dp';
   var cardTitle = document.createElement('div');
   cardTitle.className = 'mdl-card__title';
-  cardTitle.style.backgroundImage = 'url("/src/images/sf-boat.jpg")';
+  cardTitle.style.backgroundImage = 'url(' + data.image + ')';
   cardTitle.style.backgroundSize = 'cover';
   cardTitle.style.height = '180px';
   cardWrapper.appendChild(cardTitle);
   var cardTitleTextElement = document.createElement('h2');
   cardTitleTextElement.style.color = 'black';
   cardTitleTextElement.className = 'mdl-card__title-text';
-  cardTitleTextElement.textContent = 'San Francisco Trip';
+  cardTitleTextElement.textContent = data.title;
   cardTitle.appendChild(cardTitleTextElement);
   var cardSupportingText = document.createElement('div');
   cardSupportingText.className = 'mdl-card__supporting-text';
-  cardSupportingText.textContent = 'In San Francisco';
+  cardSupportingText.textContent = data.location;
   cardSupportingText.style.textAlign = 'center';
   // var cardSaveButton = document.createElement('button');
   // cardSaveButton.textContent="save";
@@ -85,19 +85,18 @@ function createCard() {
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
-var url = 'https://httpbin.org/get';
+
+function updateUI(data) {
+  clearCards();
+  for (var i = 0; i < data.length; i++) {
+    createCard(data[i]);
+  }
+}
+
+var url = 'https://pwagram.firebaseio.com/posts.json';
 var networkDataReceived = false;
 
-fetch('https://httpbin.org/get', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  },
-  body: JSON.stringify({
-    message: 'som message'
-  })
-})
+fetch(url)
   .then(function (res) {
     console.log("Calling fetch")
     return res.json();
@@ -105,8 +104,13 @@ fetch('https://httpbin.org/get', {
   .then(function (data) {
     console.log("From web 2")
     networkDataReceived = true;
-    clearCards()
-    createCard();
+    var dataArray = [];
+    for (var key in data) {
+      dataArray.push(data[key]);
+    }
+    // createCard();
+
+    updateUI(dataArray);
   })
   .catch(error => {
     console.log('[Fedd JS] feeching failed ', error);
@@ -122,8 +126,11 @@ if ('caches' in window) {
     }).then(function (data) {
       console.log('From cache ', data);
       if (!networkDataReceived) {
-        clearCards();
-        createCard();
+        var dataArray = [];
+        for (var key in data) {
+          dataArray.push(data[key]);
+        }
+        updateUI(dataArray)
       }
     })
 }

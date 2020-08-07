@@ -123,14 +123,14 @@ function isInArray(string, array) {
 
 self.addEventListener('fetch', function (event) {
   console.log('Fetched called ' + event.request.url);
-  var url = 'https://httpbin.org/get';
+  var url = 'https://pwagram.firebaseio.com/posts.json';
   if (event.request.url.indexOf(url) > -1) {
     event.respondWith(
       caches.open(CACHE_DYNAMIC_NAME)
         .then(function (cache) {
           return fetch(event.request)
             .then(function (res) {
-              trimCache(CACHE_DYNAMIC_NAME, 3);
+              trimCache(CACHE_DYNAMIC_NAME, 100);
               cache.put(event.request, res.clone());
               return res;
             })
@@ -149,7 +149,7 @@ self.addEventListener('fetch', function (event) {
           } else {
             return fetch(event.request)
               .then(function (res) {
-                trimCache(CACHE_DYNAMIC_NAME, 3);
+                trimCache(CACHE_DYNAMIC_NAME, 100);
                 return caches.open(CACHE_DYNAMIC_NAME)
                   .then(function (cache) {
                     cache.put(event.request.url, res.clone());
