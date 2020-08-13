@@ -2,6 +2,9 @@ var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
 var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
 var sharedMomentsArea = document.querySelector('#shared-moments');
+var form = document.querySelector('form');
+var title = document.querySelector('#title');
+var location = document.querySelector('#location');
 
 function openCreatePostModal() {
   createPostArea.style.transform = 'translateY(0)';
@@ -124,3 +127,60 @@ if ('indexedDB' in window) {
       }
     })
 }
+
+
+function sendData() {
+  var url = FIREBASE_URL_BASE + '/posts.json';
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      id: new Date().toISOString(),
+      title: title.value,
+      location: location.value
+    })
+  })
+  .then(function(res){
+    console.log('Send Data', res);
+    updateUI();
+  })
+}
+
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (title.value.trim() === '' || location.value.trim() === '') {
+    alert('Please enter valid data');
+    return;
+  }
+
+  closeCreatePostModal();
+
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    navigator.serviceWorker.ready
+      .then((sw) => {
+        var post = {
+          id: new Date().toISOString(),
+          title: title.value,
+          location: location.value
+        }
+        writeData('sync-posts', post)
+          .then(function () {
+            return sw.sync.register('sync-new-post');
+          })
+          .then(function () {
+            var snackBarContainer = document.querySelector('#confirmation-toast');
+            var data = { message: 'Your post was saved for syncing!' };
+            snackBarContainer.MaterialSnackbar.showSnackbar(data);
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      })
+  } else {
+    sendData();
+  }
+})

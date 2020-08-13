@@ -147,7 +147,7 @@ self.addEventListener('fetch', function (event) {
               console.log("New data", data)
               for (var key in data) {
                 writeData('posts', data[key])
-                  .then(function(){
+                  .then(function () {
                     console.log("Deleting item " + key)
                     deleteItemFromData('posts', key)
                   })
@@ -193,3 +193,39 @@ self.addEventListener('fetch', function (event) {
 
 });
 
+self.addEventListener('sync', function (event) {
+  console.log('[Servicer Worker] background syncing', event);
+  if (event.tag === 'sync-new-post') {
+    console.log('[Service Worker] Syncing new post');
+    event.waitUntil(
+      readAllData('sync-posts')
+        .then(function (data) {
+          for (var dt of data) {
+            var url = FIREBASE_URL_BASE + '/posts.json';
+
+            fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                id: dt.id,
+                title: dt.title,
+                location: dt.location
+              })
+            })
+              .then(function (res) {
+                console.log('Send Data', res);
+                if (res.ok) {
+                  deleteItemFromData('sync-posts', dt.id);
+                }
+              })
+              .catch(function (err) {
+                console.log("Error while sending data", err);
+              })
+          }
+        })
+    );
+  }
+})
