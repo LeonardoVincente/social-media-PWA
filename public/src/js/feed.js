@@ -4,7 +4,7 @@ var closeCreatePostModalButton = document.querySelector('#close-create-post-moda
 var sharedMomentsArea = document.querySelector('#shared-moments');
 var form = document.querySelector('form');
 var title = document.querySelector('#title');
-var location = document.querySelector('#location');
+var locationElement = document.querySelector('#locationElement');
 
 function openCreatePostModal() {
   createPostArea.style.transform = 'translateY(0)';
@@ -141,7 +141,7 @@ function sendData() {
     body: JSON.stringify({
       id: new Date().toISOString(),
       title: title.value,
-      location: location.value
+      location: locationElement.value
     })
   })
   .then(function(res){
@@ -152,7 +152,7 @@ function sendData() {
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
-  if (title.value.trim() === '' || location.value.trim() === '') {
+  if (title.value.trim() === '' || locationElement.value.trim() === '') {
     alert('Please enter valid data');
     return;
   }
@@ -165,7 +165,7 @@ form.addEventListener('submit', (event) => {
         var post = {
           id: new Date().toISOString(),
           title: title.value,
-          location: location.value
+          location: locationElement.value
         }
         writeData('sync-posts', post)
           .then(function () {
