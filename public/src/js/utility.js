@@ -9,6 +9,7 @@ var dbPromise = idb.open('posts-store', 1, function (db) {
 });
 
 function writeData(st, data) {
+    console.log('Writtng data');
     return dbPromise.then(function (db) {
         var tx = db.transaction(st, 'readwrite');
         var store = tx.objectStore(st);
@@ -25,7 +26,7 @@ function readAllData(st) {
     })
 }
 function clearAllData(st) {
-    console.log("Clearing data inside method");
+    console.log("Clearing all data");
     return dbPromise
         .then(function (db) {
             var tx = db.transaction(st, 'readwrite');

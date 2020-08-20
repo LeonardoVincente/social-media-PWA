@@ -2,14 +2,15 @@ importScripts('/src/js/idb.js');
 importScripts('/src/js/secret.js');
 importScripts('/src/js/utility.js');
 
-const CACHE_STATIC_NAME = 'static-33';
-const CACHE_DYNAMIC_NAME = 'dynamic-v9';
-const STATIC_FILES = [
+
+var CACHE_STATIC_NAME = 'static-v24';
+var CACHE_DYNAMIC_NAME = 'dynamic-v2';
+var STATIC_FILES = [
   '/',
   '/index.html',
   '/offline.html',
   '/src/js/app.js',
-  'src/js/feed.js',
+  '/src/js/feed.js',
   '/src/js/idb.js',
   '/src/js/promise.js',
   '/src/js/fetch.js',
@@ -22,145 +23,81 @@ const STATIC_FILES = [
   'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css'
 ];
 
-
-function trimCache(cacheName, maxItems) {
-  caches.open(cacheName)
-    .then(function (cache) {
-      return cache.keys()
-        .then(function (keys) {
-          if (keys.length > maxItems) {
-            cache.delete(keys[0])
-              .then(trimCache(cacheName, maxItems));
-          }
-        });
-    })
-}
+// function trimCache(cacheName, maxItems) {
+//   caches.open(cacheName)
+//     .then(function (cache) {
+//       return cache.keys()
+//         .then(function (keys) {
+//           if (keys.length > maxItems) {
+//             cache.delete(keys[0])
+//               .then(trimCache(cacheName, maxItems));
+//           }
+//         });
+//     })
+// }
 
 self.addEventListener('install', function (event) {
+  console.log('[Service Worker] Installing Service Worker ...', event);
   event.waitUntil(
     caches.open(CACHE_STATIC_NAME)
       .then(function (cache) {
-        console.log('[Service Worker] Precaching app shell');
+        console.log('[Service Worker] Precaching App Shell');
         cache.addAll(STATIC_FILES);
+      })
+  )
+});
+
+self.addEventListener('activate', function (event) {
+  console.log('[Service Worker] Activating Service Worker ....', event);
+  event.waitUntil(
+    caches.keys()
+      .then(function (keyList) {
+        return Promise.all(keyList.map(function (key) {
+          if (key !== CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
+            console.log('[Service Worker] Removing old cache.', key);
+            return caches.delete(key);
+          }
+        }));
       })
   );
   return self.clients.claim();
 });
 
-self.addEventListener('activate', function (event) {
-  console.log("Activate called");
-  event.waitUntil(caches.keys()
-    .then(function (keyList) {
-      return Promise.all(keyList.map(function (key) {
-        if (key != CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
-          console.log('[Service Worker] removing caches');
-          return caches.delete(key);
-        }
-      }));
-    })
-  );
-  return self.clients.claim();
-})
-
-//cache then network
-// self.addEventListener('fetch', function (event) {
-//   event.respondWith(
-//     caches.match(event.request)
-//       .then(function (response) {
-//         if (response) {
-//           return response;
-//         } else {
-//           return fetch(event.request)
-//             .then(function (res) {
-//               caches.open(CACHE_DYNAMIC_NAME)
-//                 .then(function (cache) {
-//                   cache.put(event.request.url, res.clone());
-//                   console.log("Error error ", res)
-//                   return res;
-//                 })
-//             })
-//             .catch(function (err) {
-//               console.log(err)
-//               return caches.open(CACHE_STATIC_NAME)
-//             }).then(function(cache){
-//               return cache.match('/offilne.html');
-//             })
-//         }
-//       })
-//   );
-// });
-
-//Cache only
-// self.addEventListener('fetch', function (event) {
-//   event.respondWith(
-//     caches.match(event.request)
-// )});    
-
-//Network only
-// self.addEventListener('fetch', function (event) {
-//   event.respondWith(
-//     fetch(event.request)
-// )});    
-
-
-//network then cache
-// self.addEventListener('fetch', function (event) {
-//   event.respondWith(
-//     fetch(event.request)
-//       .catch(err => {
-//         return caches.match(event.request)
-
-//       })
-//   );
-// });
-
-
-
-//cache then network
-
 function isInArray(string, array) {
-  for (var i = 0; i < array.length; i++) {
-    if (array[i] == string) {
-      return true;
-    }
+  var cachePath;
+  if (string.indexOf(self.origin) === 0) { // request targets domain where we serve the page from (i.e. NOT a CDN)
+    console.log('matched ', string);
+    cachePath = string.substring(self.origin.length); // take the part of the URL AFTER the domain (e.g. after localhost:8080)
+  } else {
+    cachePath = string; // store the full request (for CDNs)
   }
-  return false;
+  return array.indexOf(cachePath) > -1;
 }
 
 self.addEventListener('fetch', function (event) {
-  console.log('Fetched called ' + event.request.url);
-  var url = FIREBASE_URL_BASE + '/posts.json';
-  console.log("URL " + url);
+
+  var url = FIREBASE_URL_BASE + '/posts';
   if (event.request.url.indexOf(url) > -1) {
-    console.log("INside if")
-    event.respondWith(
-      fetch(event.request)
-        .then(function (res) {
-          console.log("Clearing data")
-          var cloneRes = res.clone();
-          clearAllData('posts')
-            .then(function () {
-              console.log("After clearing data")
-              return cloneRes.json()
-            })
-            .then(function (data) {
-              console.log("New data", data)
-              for (var key in data) {
-                writeData('posts', data[key])
-                  .then(function () {
-                    console.log("Deleting item " + key)
-                    deleteItemFromData('posts', key)
-                  })
-              }
-            });
-          return res;
-        })
+    event.respondWith(fetch(event.request)
+      .then(function (res) {
+        var clonedRes = res.clone();
+        clearAllData('posts')
+          .then(function () {
+            return clonedRes.json();
+          })
+          .then(function (data) {
+            for (var key in data) {
+              writeData('posts', data[key])
+            }
+          });
+        return res;
+      })
     );
   } else if (isInArray(event.request.url, STATIC_FILES)) {
     event.respondWith(
       caches.match(event.request)
-    )
-  } else { // cache with network fallback
+    );
+  } else {
     event.respondWith(
       caches.match(event.request)
         .then(function (response) {
@@ -169,63 +106,123 @@ self.addEventListener('fetch', function (event) {
           } else {
             return fetch(event.request)
               .then(function (res) {
-                trimCache(CACHE_DYNAMIC_NAME, 100);
                 return caches.open(CACHE_DYNAMIC_NAME)
                   .then(function (cache) {
+                    // trimCache(CACHE_DYNAMIC_NAME, 3);
                     cache.put(event.request.url, res.clone());
-                    console.log("Error error ", res)
                     return res;
                   })
               })
               .catch(function (err) {
-                console.log("eRROR IN CATCH BLOCK ", err)
                 return caches.open(CACHE_STATIC_NAME)
                   .then(function (cache) {
                     if (event.request.headers.get('accept').includes('text/html')) {
-                      return cache.match('/offilne.html');
+                      return cache.match('/offline.html');
                     }
-                  })
-              })
+                  });
+              });
           }
         })
     );
   }
-
 });
 
+// self.addEventListener('fetch', function(event) {
+//   event.respondWith(
+//     caches.match(event.request)
+//       .then(function(response) {
+//         if (response) {
+//           return response;
+//         } else {
+//           return fetch(event.request)
+//             .then(function(res) {
+//               return caches.open(CACHE_DYNAMIC_NAME)
+//                 .then(function(cache) {
+//                   cache.put(event.request.url, res.clone());
+//                   return res;
+//                 })
+//             })
+//             .catch(function(err) {
+//               return caches.open(CACHE_STATIC_NAME)
+//                 .then(function(cache) {
+//                   return cache.match('/offline.html');
+//                 });
+//             });
+//         }
+//       })
+//   );
+// });
+
+// self.addEventListener('fetch', function(event) {
+//   event.respondWith(
+//     fetch(event.request)
+//       .then(function(res) {
+//         return caches.open(CACHE_DYNAMIC_NAME)
+//                 .then(function(cache) {
+//                   cache.put(event.request.url, res.clone());
+//                   return res;
+//                 })
+//       })
+//       .catch(function(err) {
+//         return caches.match(event.request);
+//       })
+//   );
+// });
+
+// Cache-only
+// self.addEventListener('fetch', function (event) {
+//   event.respondWith(
+//     caches.match(event.request)
+//   );
+// });
+
+// Network-only
+// self.addEventListener('fetch', function (event) {
+//   event.respondWith(
+//     fetch(event.request)
+//   );
+// });
+
 self.addEventListener('sync', function (event) {
-  console.log('[Servicer Worker] background syncing', event);
+  console.log('[Service Worker] Background syncing', event);
   if (event.tag === 'sync-new-posts') {
-    console.log('[Service Worker] Syncing new post');
+    console.log('[Service Worker] Syncing new Posts');
     event.waitUntil(
       readAllData('sync-posts')
         .then(function (data) {
           for (var dt of data) {
-            var url = FIREBASE_URL_BASE + '/posts.json';
-
-            fetch(url, {
+            fetch(CLOUD_FUNCTION_URL, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Access-Control-Allow-Origin': '*'
               },
+              mode: 'no-cors',
               body: JSON.stringify({
                 id: dt.id,
                 title: dt.title,
-                location: dt.location
+                location: dt.location,
+                image: FIREBASE_STOCK_IMAGE
               })
             })
               .then(function (res) {
-                console.log('Send Data', res);
-                if (res.ok) {
-                  deleteItemFromData('sync-posts', dt.id);
+                console.log('Sent data', res);
+                if (res.type === 'opaque' || res.ok) {
+                  console.log("Send data is oK")
+                  // res.json()
+                  //   .then(function (resData) {
+                  clearAllData('sync-posts');
+                  // deleteItemFromData('sync-posts', resData.id);
+                  // });
                 }
               })
               .catch(function (err) {
-                console.log("Error while sending data", err);
-              })
+                console.log('Error while sending data', err);
+              });
           }
+
         })
     );
   }
-})
+});
