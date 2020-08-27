@@ -246,11 +246,8 @@ self.addEventListener('notificationclose', function (event) {
 });
 
 self.addEventListener('push', function (event) {
-  console.log("Push notificaion reiece", event);
-
   let data = { title: 'new!', content: 'something new happend' };
   if (event.data) {
-    console.log("TEST: ", event.data.text())
     data = JSON.parse(event.data.text());
   }
 
