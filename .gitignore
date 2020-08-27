@@ -2,3 +2,4 @@
 node_modules
 /public/src/js/secret.js
 /functions/firebaseKey.json
+/functions/firebaseSecret.json

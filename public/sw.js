@@ -226,3 +226,44 @@ self.addEventListener('sync', function (event) {
     );
   }
 });
+
+self.addEventListener('notificationclick', function (event) {
+  var notification = event.notification;
+  var action = event.action;
+  console.log("{SW}  Click event listener")
+  console.log(notification);
+  if (action === 'confirm') {
+    console.log("USer selected confirm");
+    notification.close();
+  } else {
+    console.log(action);
+    notification.close();
+  }
+})
+
+self.addEventListener('notificationclose', function (event) {
+  console.log('Notification was closed', event);
+});
+
+self.addEventListener('push', function (event) {
+  console.log("Push notificaion reiece", event);
+
+  let data = { title: 'new!', content: 'something new happend' };
+  if (event.data) {
+    console.log("TEST: ", event.data.text())
+    data = JSON.parse(event.data.text());
+  }
+
+  console.log("data: ", data);
+  let options = {
+    body: data.content,
+    icon: '/src/images/icons/app-icon-96x96.png',
+    badge: '/src/images/icons/app-icon-96x96.png'
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  )
+});
+
+
