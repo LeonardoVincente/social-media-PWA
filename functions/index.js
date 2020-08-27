@@ -32,11 +32,11 @@ exports.storePostData = functions.https.onRequest(function (request, response) {
           'mailto:leo@leo.com',
           firebaseSecrets.publicKey,
           firebaseSecrets.privateKey
-          );
+        );
         return admin.database().ref('subscriptions').once('value');
       })
-      .then(function(subscriptions){
-        subscriptions.forEach((sub)=>{
+      .then(function (subscriptions) {
+        subscriptions.forEach((sub) => {
           var pushConfig = {
             endpoint: sub.val().endpoint,
             keys: {
@@ -44,8 +44,13 @@ exports.storePostData = functions.https.onRequest(function (request, response) {
               p256dh: sub.val().keys.p256dh
             }
           };
-          webpush.sendNotification(pushConfig, JSON.stringify({title: 'new post', content: 'new Post added!'}))
-            .catch((err)=>{
+          webpush.sendNotification(pushConfig,
+            JSON.stringify({
+              title: 'new post',
+              content: 'new Post added!',
+              openUrl: '/help'
+            }))
+            .catch((err) => {
               console.log(err);
             });
         })

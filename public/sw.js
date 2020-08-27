@@ -237,7 +237,22 @@ self.addEventListener('notificationclick', function (event) {
     notification.close();
   } else {
     console.log(action);
-    notification.close();
+    event.waitUntil(
+      clients.matchAll()
+        .then(function (clis) {
+          let client = clis.find(c => {
+            return c.visibilityState === 'visible';
+          });
+
+          if (client !== undefined) {
+            client.navigate(notification.data.url);
+            client.focus();
+          } else {
+            clients.openWindow(notification.data.url);
+          }
+          notification.close();
+        })
+    );
   }
 })
 
@@ -246,7 +261,11 @@ self.addEventListener('notificationclose', function (event) {
 });
 
 self.addEventListener('push', function (event) {
-  let data = { title: 'new!', content: 'something new happend' };
+  let data = { 
+    title: 'new!',
+    content: 'something new happend',
+    openUrl: '/' 
+  };
   if (event.data) {
     data = JSON.parse(event.data.text());
   }
@@ -255,7 +274,10 @@ self.addEventListener('push', function (event) {
   let options = {
     body: data.content,
     icon: '/src/images/icons/app-icon-96x96.png',
-    badge: '/src/images/icons/app-icon-96x96.png'
+    badge: '/src/images/icons/app-icon-96x96.png',
+    data: {
+      url: data.openUrl
+    }
   };
 
   event.waitUntil(
