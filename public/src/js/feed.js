@@ -5,16 +5,52 @@ var sharedMomentsArea = document.querySelector('#shared-moments');
 var form = document.querySelector('form');
 var titleInput = document.querySelector('#title');
 var locationInput = document.querySelector('#location');
+var videoPlayer = document.querySelector('#player');
+var canvasElement = document.querySelector('#canvas');
+var captureButton = document.querySelector('#capture-btn');
+var imagePicker = document.querySelector('#image-picker');
+var imagePickerArea = document.querySelector('#pick-image');
+
+
+function initializeMedia() {
+  if (!'mediaDevices' in navigator) {
+    navigator.mediaDevices = {};
+  }
+
+  if (!('getUserMedia' in navigator.mediaDevices)) {
+    navigator.mediaDevices.getUserMedia = function (constraints) {
+      var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+      if (!getUserMedia) {
+        return Promise.reject(new Error('getUSerMedia is no implemented!'));
+      }
+
+      return new Promise(function (resolve, reject) {
+        getUserMedia.call(navigator, constraints, resolve, reject);
+      });
+    }
+  }
+
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function (stream) {
+      videoPlayer.srcObject = stream;
+      videoPlayer.style.display = 'block';
+    })
+    .catch(function (err) {
+      console.log(err);
+      imagePickerArea.style.display = 'block';
+    });
+}
 
 function openCreatePostModal() {
   // createPostArea.style.display = 'block';
   // setTimeout(function() {
-    createPostArea.style.transform = 'translateY(0)';
+  createPostArea.style.transform = 'translateY(0)';
+  initializeMedia();
   // }, 1);
   if (deferredPrompt) {
     deferredPrompt.prompt();
 
-    deferredPrompt.userChoice.then(function(choiceResult) {
+    deferredPrompt.userChoice.then(function (choiceResult) {
       console.log(choiceResult.outcome);
 
       if (choiceResult.outcome === 'dismissed') {
@@ -39,6 +75,9 @@ function openCreatePostModal() {
 
 function closeCreatePostModal() {
   createPostArea.style.transform = 'translateY(100vh)';
+  imagePickerArea.style.display = 'none';
+  videoPlayer.style.display = 'none';
+  canvasElement.style.display = 'none';
   // createPostArea.style.display = 'none';
 }
 
@@ -51,7 +90,7 @@ function onSaveButtonClicked(event) {
   console.log('clicked');
   if ('caches' in window) {
     caches.open('user-requested')
-      .then(function(cache) {
+      .then(function (cache) {
         cache.add('https://httpbin.org/get');
         cache.add('/src/images/sf-boat.jpg');
       });
@@ -59,7 +98,7 @@ function onSaveButtonClicked(event) {
 }
 
 function clearCards() {
-  while(sharedMomentsArea.hasChildNodes()) {
+  while (sharedMomentsArea.hasChildNodes()) {
     sharedMomentsArea.removeChild(sharedMomentsArea.lastChild);
   }
 }
@@ -97,14 +136,14 @@ function updateUI(data) {
   }
 }
 
-var url = FIREBASE_URL_BASE+'/posts.json';
+var url = FIREBASE_URL_BASE + '/posts.json';
 var networkDataReceived = false;
 
 fetch(url)
-  .then(function(res) {
+  .then(function (res) {
     return res.json();
   })
-  .then(function(data) {
+  .then(function (data) {
     networkDataReceived = true;
     console.log('From web', data);
     var dataArray = [];
@@ -116,7 +155,7 @@ fetch(url)
 
 if ('indexedDB' in window) {
   readAllData('posts')
-    .then(function(data) {
+    .then(function (data) {
       if (!networkDataReceived) {
         console.log('From cache', data);
         updateUI(data);
@@ -138,13 +177,13 @@ function sendData() {
       image: FIREBASE_STOCK_IMAGE
     })
   })
-    .then(function(res) {
+    .then(function (res) {
       console.log('Sent data', res);
       updateUI();
     })
 }
 
-form.addEventListener('submit', function(event) {
+form.addEventListener('submit', function (event) {
   event.preventDefault();
 
   if (titleInput.value.trim() === '' || locationInput.value.trim() === '') {
@@ -156,22 +195,22 @@ form.addEventListener('submit', function(event) {
 
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     navigator.serviceWorker.ready
-      .then(function(sw) {
+      .then(function (sw) {
         var post = {
           id: new Date().toISOString(),
           title: titleInput.value,
           location: locationInput.value
         };
         writeData('sync-posts', post)
-          .then(function() {
+          .then(function () {
             return sw.sync.register('sync-new-posts');
           })
-          .then(function() {
+          .then(function () {
             var snackbarContainer = document.querySelector('#confirmation-toast');
-            var data = {message: 'Your Post was saved for syncing!'};
+            var data = { message: 'Your Post was saved for syncing!' };
             snackbarContainer.MaterialSnackbar.showSnackbar(data);
           })
-          .catch(function(err) {
+          .catch(function (err) {
             console.log(err);
           });
       });
