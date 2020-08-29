@@ -3,13 +3,14 @@ importScripts('/src/js/secret.js');
 importScripts('/src/js/utility.js');
 
 
-var CACHE_STATIC_NAME = 'static-v29';
-var CACHE_DYNAMIC_NAME = 'dynamic-v2';
+var CACHE_STATIC_NAME = 'static-v30';
+var CACHE_DYNAMIC_NAME = 'dynamic-v3';
 var STATIC_FILES = [
   '/',
   '/index.html',
   '/offline.html',
   '/src/js/app.js',
+  '/src/js/utility.js',
   '/src/js/feed.js',
   '/src/js/idb.js',
   '/src/js/promise.js',
@@ -87,6 +88,7 @@ self.addEventListener('fetch', function (event) {
           })
           .then(function (data) {
             for (var key in data) {
+              console.log("Post ", data[key])
               writeData('posts', data[key])
             }
           });
@@ -190,21 +192,24 @@ self.addEventListener('sync', function (event) {
     event.waitUntil(
       readAllData('sync-posts')
         .then(function (data) {
+          console.log(data);
           for (var dt of data) {
+            console.log('Pricure ', dt.picture);
+            var postData = new FormData();
+            postData.append('id', dt.id);
+            postData.append('title', dt.title);
+            postData.append('location', dt.location);
+            postData.append('file', dt.picture, dt.id + '.png');
+
             fetch(CLOUD_FUNCTION_URL, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-              },
+              // headers: {
+              //   'Content-Type': 'application/json',
+              //   'Accept': 'application/json',
+              //   'Access-Control-Allow-Origin': '*'
+              // },
               mode: 'no-cors',
-              body: JSON.stringify({
-                id: dt.id,
-                title: dt.title,
-                location: dt.location,
-                image: FIREBASE_STOCK_IMAGE
-              })
+              body: postData
             })
               .then(function (res) {
                 console.log('Sent data', res);
@@ -261,10 +266,10 @@ self.addEventListener('notificationclose', function (event) {
 });
 
 self.addEventListener('push', function (event) {
-  let data = { 
+  let data = {
     title: 'new!',
     content: 'something new happend',
-    openUrl: '/' 
+    openUrl: '/'
   };
   if (event.data) {
     data = JSON.parse(event.data.text());
